@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: business-owner-service
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/business_owner_db
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: pass
+  flyway:
+    locations: classpath:db/migration
+    validate-on-migrate: true
