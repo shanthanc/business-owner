@@ -5,6 +5,7 @@ import lombok.*;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.Table;
 
 import static javax.persistence.GenerationType.AUTO;
 
@@ -15,6 +16,7 @@ import static javax.persistence.GenerationType.AUTO;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+@Table(name = "business_owner")
 public class BusinessOwnerEntity {
 
     @Id

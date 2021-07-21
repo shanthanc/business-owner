@@ -14,6 +14,4 @@ public interface BusinessOwnerRepository extends JpaRepository<BusinessOwnerEnti
     @Override
     BusinessOwnerEntity getById(Long boNumber);
 
-    @Override
-    void deleteById(Long boNumber);
 }

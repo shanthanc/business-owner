@@ -1,24 +1,39 @@
 package com.shanthan.businessowner.service;
 
+import com.google.gson.Gson;
+import com.shanthan.businessowner.exception.BusinessOwnerException;
 import com.shanthan.businessowner.model.Address;
 import com.shanthan.businessowner.model.BusinessOwner;
 import com.shanthan.businessowner.repository.BusinessOwnerEntity;
 import com.shanthan.businessowner.repository.BusinessOwnerRepository;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
+import javax.persistence.EntityNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.shanthan.businessowner.testutil.BusinessOwnerTestConstants.*;
+import static com.shanthan.businessowner.testutil.BusinessOwnerTestConstants.BO_NUMBER;
+import static com.shanthan.businessowner.testutil.BusinessOwnerTestConstants.CITY;
+import static com.shanthan.businessowner.testutil.BusinessOwnerTestConstants.FIRST_NAME;
+import static com.shanthan.businessowner.testutil.BusinessOwnerTestConstants.HOUSE_OR_APT_NUM;
+import static com.shanthan.businessowner.testutil.BusinessOwnerTestConstants.LAST_NAME;
+import static com.shanthan.businessowner.testutil.BusinessOwnerTestConstants.STATE;
+import static com.shanthan.businessowner.testutil.BusinessOwnerTestConstants.STREET;
+import static com.shanthan.businessowner.testutil.BusinessOwnerTestConstants.ZIP_CODE;
+import static java.util.Optional.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 class BusinessOwnerServiceTest {
 
@@ -90,11 +105,66 @@ class BusinessOwnerServiceTest {
         businessOwnerEntityList.add(businessOwnerEntity2);
         businessOwnerEntityList.add(businessOwnerEntity3);
 
+        businessOwner = BusinessOwner.builder()
+                .firstName(FIRST_NAME)
+                .lastName(LAST_NAME)
+                .address(Address.builder()
+                        .street(STREET)
+                        .city(CITY)
+                        .state(STATE)
+                        .zipcode(ZIP_CODE)
+                        .build())
+                .build();
     }
 
     @Test
-    @Disabled
+    @DisplayName("Test for saving new business owner in database")
     void addBusinessOwner() {
+        BusinessOwnerEntity newBusinessOwnerEntity =  transformToBusinessOwnerEntity(businessOwner);
+        subject.addBusinessOwner(businessOwner);
+        verify(businessOwnerRepository).save(newBusinessOwnerEntity);
+    }
+
+    private BusinessOwnerEntity transformToBusinessOwnerEntity(BusinessOwner businessOwner) {
+        BusinessOwnerEntity businessOwnerEntity = new BusinessOwnerEntity();
+        businessOwnerEntity.setFirstName(of(businessOwner.getFirstName()).orElse(null));
+        businessOwnerEntity.setLastName(of(businessOwner.getLastName()).orElse(null));
+        businessOwnerEntity.setAddress(transformToAddressJsonString(of(businessOwner.getAddress())
+                .orElse(null)));
+        return businessOwnerEntity;
+    }
+
+    private String transformToAddressJsonString(Address address) {
+        Gson gson = new Gson();
+        return gson.toJson(address);
+    }
+
+    @Test
+    @DisplayName("Test for retrieving business owner from database ")
+    void givenValidBoNumber_whenCallMadeToReturnBusinessOwner_ReturnValidBusinessOwner() {
+        when(businessOwnerRepository.getById(anyLong())).thenReturn(transformToBusinessOwnerEntity(businessOwner));
+        BusinessOwner actualResult = subject.getBusinessOwner(1L);
+        assertNotNull(actualResult);
+        assertEquals(FIRST_NAME, actualResult.getFirstName());
+        assertEquals(LAST_NAME, actualResult.getLastName());
+    }
+
+    @Test
+    @DisplayName("Testing when business owner doesn't exist in DB")
+    void givenBoNumber_whenBusinessOwnerNotFound_throwsExceptionWithNotFoundStatus() {
+        when(businessOwnerRepository.getById(anyLong())).thenThrow(new EntityNotFoundException("not found"));
+        BusinessOwnerException exception = assertThrows(BusinessOwnerException.class, () ->
+                subject.getBusinessOwner(1L));
+        assertEquals(NOT_FOUND, exception.getHttpStatus());
+    }
+
+    @Test
+    @DisplayName("Testing when unexpected exception occurs when retrieving business owner based on boNumber")
+    void givenBoNumber_whenRetrievingBusinessOwner_throwsExceptionWithInternalServerStatus() {
+        when(businessOwnerRepository.getById(anyLong())).thenThrow(new RuntimeException("someException"));
+        BusinessOwnerException exception = assertThrows(BusinessOwnerException.class, () ->
+                subject.getBusinessOwner(1L));
+        assertEquals(INTERNAL_SERVER_ERROR, exception.getHttpStatus());
     }
 
     @Test
@@ -110,9 +180,28 @@ class BusinessOwnerServiceTest {
     }
 
     @Test
+    @DisplayName("Testing to see if empty Business Owner List is returned when empty list is returned from db")
     void givenNoBusinessOwnersPresentInDb_whenRetrieveBusinessOwnersMethodCalled_ReturnsEmptyBusinessOwnerList() {
-        when(businessOwnerRepository.findAll()).thenReturn(businessOwnerEntityList);
+        when(businessOwnerRepository.findAll()).thenReturn(new ArrayList<BusinessOwnerEntity>());
         List<BusinessOwner> businessOwnerList = subject.retrieveAllBusinessOwners();
         assertNotNull(businessOwnerList);
+        assertEquals(0, businessOwnerList.size());
+    }
+
+    @Test
+    @DisplayName("Testing for exception when retrieving owners list")
+    void givenBusinessOwnerDbIsUpAndRunning_whenRetrieveBusinessOwnersMethodCalled_ThrowsException() {
+        when(businessOwnerRepository.findAll()).thenThrow(new RuntimeException("someException"));
+        BusinessOwnerException exception = assertThrows(BusinessOwnerException.class, () -> subject.retrieveAllBusinessOwners());
+        assertEquals("someException", exception.getExceptionMessage());
+        assertEquals(INTERNAL_SERVER_ERROR, exception.getHttpStatus());
+    }
+
+    @Test
+    @DisplayName("Testing to see if exception is thrown when null list is returned from db")
+    void givenNoBusinessOwnersPresentInDb_whenRetrieveBusinessOwnersMethodCalled_ThrowsException() {
+        when(businessOwnerRepository.findAll()).thenReturn(null);
+        BusinessOwnerException exception = assertThrows(BusinessOwnerException.class, () -> subject.retrieveAllBusinessOwners());
+        assertEquals(INTERNAL_SERVER_ERROR, exception.getHttpStatus());
     }
 }
