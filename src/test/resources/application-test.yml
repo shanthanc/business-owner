@@ -6,4 +6,5 @@ spring:
     password: testpass
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto:
+

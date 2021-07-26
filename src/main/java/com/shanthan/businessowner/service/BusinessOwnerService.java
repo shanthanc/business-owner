@@ -14,7 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Optional.of;
-import static org.springframework.http.HttpStatus.*;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
 @Slf4j
@@ -47,6 +48,7 @@ public class BusinessOwnerService {
 
     private BusinessOwner transformToBusinessOwner(BusinessOwnerEntity businessOwnerEntity) {
         return BusinessOwner.builder()
+                .boNumber(businessOwnerEntity.getBoNumber())
                 .firstName(of(businessOwnerEntity.getFirstName()).orElse(null))
                 .lastName(of(businessOwnerEntity.getLastName()).orElse(null))
                 .address(transformToAddressObject(of(businessOwnerEntity.getAddress()).orElse(null)))
@@ -98,5 +100,13 @@ public class BusinessOwnerService {
             log.error("Exception occurred while retrieving business owner list from database ", ex);
             throw new BusinessOwnerException(ex.getMessage(), INTERNAL_SERVER_ERROR, ex);
         }
+    }
+
+    public Long updateBusinessOwnerName(String firstName, String lastName) {
+        return null;
+    }
+
+    public Long updateBusinessOwnerAddress(Address address) {
+        return null;
     }
 }

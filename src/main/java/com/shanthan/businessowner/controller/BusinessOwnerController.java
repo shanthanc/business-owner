@@ -26,8 +26,9 @@ public class BusinessOwnerController {
     }
 
     @GetMapping("/business-owner/{boNumber}")
-    public ResponseEntity<BusinessOwner> getBusinessOwner(@PathVariable Long boBumber) {
-        return ok(businessOwnerService.getBusinessOwner(boBumber));
+    public ResponseEntity<BusinessOwner> getBusinessOwner(@PathVariable("boNumber") Long boNumber) {
+
+        return ok(businessOwnerService.getBusinessOwner(boNumber));
     }
 
     @GetMapping("/business-owners")
@@ -37,6 +38,7 @@ public class BusinessOwnerController {
 
     @PostMapping("/create-business-owner")
     public ResponseEntity<SuccessResponse> addBusinessOwner(@RequestBody BusinessOwner businessOwner) {
+        businessOwnerService.addBusinessOwner(businessOwner);
        return ResponseEntity.status(CREATED).body(SuccessResponse.builder()
                .httpStatus(CREATED)
                .message(SUCCESS)

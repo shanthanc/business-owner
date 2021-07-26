@@ -7,7 +7,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
-import static javax.persistence.GenerationType.AUTO;
+import static javax.persistence.GenerationType.IDENTITY;
 
 @Data
 @EqualsAndHashCode
@@ -20,7 +20,7 @@ import static javax.persistence.GenerationType.AUTO;
 public class BusinessOwnerEntity {
 
     @Id
-    @GeneratedValue(strategy = AUTO)
+    @GeneratedValue(strategy = IDENTITY)
     private long boNumber;
     private String firstName;
     private String lastName;
