@@ -15,6 +15,7 @@ public class BusinessOwnerTestConstants {
     public static final String ZIP_CODE = "987654";
     public static final State STATE = ILLINOIS;
     public static final String COUNTRY = "USA";
+    public static final String NAME_PATCH_SUCCESS = "Business owner name with above boNumber updated successfully ";
 
 }
 

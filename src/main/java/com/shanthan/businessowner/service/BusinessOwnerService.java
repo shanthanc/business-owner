@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Optional.of;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
@@ -73,8 +74,7 @@ public class BusinessOwnerService {
         } catch (EntityNotFoundException entityNotFoundException) {
             log.error("Business owner with boNumber -> {} doesn't exist ", boNumber, entityNotFoundException);
             throw new BusinessOwnerException(entityNotFoundException.getMessage(), NOT_FOUND, entityNotFoundException);
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             log.error("Exception occurred while retrieving business owner with boNumber -> {} from database ",
                     boNumber, ex);
             throw new BusinessOwnerException(ex.getMessage(), INTERNAL_SERVER_ERROR, ex);
@@ -102,11 +102,76 @@ public class BusinessOwnerService {
         }
     }
 
-    public Long updateBusinessOwnerName(String firstName, String lastName) {
-        return null;
+
+    public BusinessOwnerEntity updateBusinessOwnerName(Long boNumber, String firstName, String lastName) {
+        BusinessOwnerEntity updatedBusinessOwnerEntity;
+        try {
+            if (businessOwnerRepository.existsById(boNumber)) {
+                BusinessOwnerEntity businessOwnerEntity = businessOwnerRepository.getById(boNumber);
+                businessOwnerEntity.setFirstName(firstName);
+                businessOwnerEntity.setLastName(lastName);
+                updatedBusinessOwnerEntity = businessOwnerRepository.save(businessOwnerEntity);
+            } else {
+                throw new BusinessOwnerException("Business owner with boNumber -> " + boNumber + " not found ",
+                        NOT_FOUND);
+            }
+            return updatedBusinessOwnerEntity;
+        } catch (BusinessOwnerException ex) {
+            log.error(ex.getMessage(), ex);
+            throw new BusinessOwnerException(ex.getExceptionMessage(), ex.getHttpStatus(), ex);
+        } catch (Exception ex) {
+            log.error("Unable to update Business owner with boNumber -> {} ", boNumber, ex);
+            throw new BusinessOwnerException(ex.getMessage(), INTERNAL_SERVER_ERROR, ex);
+        }
     }
 
-    public Long updateBusinessOwnerAddress(Address address) {
-        return null;
+    public BusinessOwnerEntity updateBusinessOwnerAddress(Long boNumber, Address address) {
+        BusinessOwnerEntity businessOwnerEntity = null;
+        try {
+            if (businessOwnerRepository.existsById(boNumber)) {
+                String addressString = transformToAddressJsonString(address);
+                businessOwnerEntity = businessOwnerRepository.getById(boNumber);
+                businessOwnerEntity.setAddress(addressString);
+                businessOwnerEntity = businessOwnerRepository.save(businessOwnerEntity);
+            } else {
+                throw new BusinessOwnerException("Business owner with boNumber -> " + boNumber + " not found ",
+                        NOT_FOUND);
+            }
+        } catch (BusinessOwnerException ex) {
+            log.error(ex.getMessage(), ex);
+            throw new BusinessOwnerException(ex.getExceptionMessage(), ex.getHttpStatus(), ex);
+        } catch (Exception ex) {
+            log.error("Unable to update Business owner with boNumber -> {} ", boNumber, ex);
+            throw new BusinessOwnerException(ex.getMessage(), INTERNAL_SERVER_ERROR, ex);
+        }
+        return businessOwnerEntity;
+    }
+
+    public BusinessOwnerEntity updateBusinessOwner(BusinessOwner businessOwner) {
+        BusinessOwnerEntity businessOwnerEntity = null;
+        if (businessOwner.getBoNumber() == 0) {
+            throw new BusinessOwnerException("boNumber must be a valid number ", BAD_REQUEST);
+        }
+        long boNumber = businessOwner.getBoNumber();
+        try {
+            if (businessOwnerRepository.existsById(boNumber)) {
+                businessOwnerEntity = businessOwnerRepository.getById(boNumber);
+                businessOwnerEntity.setFirstName(businessOwner.getFirstName());
+                businessOwnerEntity.setLastName(businessOwner.getLastName());
+                businessOwnerEntity.setAddress(transformToAddressJsonString(businessOwner.getAddress()));
+                businessOwnerEntity = businessOwnerRepository.save(businessOwnerEntity);
+            } else {
+                throw new BusinessOwnerException("Business Owner with boNumber -> " + boNumber + " not found",
+                        NOT_FOUND);
+            }
+        } catch (BusinessOwnerException boe) {
+            log.error(boe.getExceptionMessage(), boe);
+            throw new BusinessOwnerException(boe.getExceptionMessage(), boe.getHttpStatus(), boe);
+        } catch (Exception ex) {
+            log.error("Unable to update business owner with boNumber -> {} ", boNumber);
+            throw new BusinessOwnerException(ex.getMessage(), INTERNAL_SERVER_ERROR, ex);
+        }
+        return businessOwnerEntity;
     }
 }
+

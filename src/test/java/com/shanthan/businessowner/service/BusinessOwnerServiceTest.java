@@ -16,7 +16,6 @@ import javax.persistence.EntityNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.shanthan.businessowner.testutil.BusinessOwnerTestConstants.BO_NUMBER;
 import static com.shanthan.businessowner.testutil.BusinessOwnerTestConstants.CITY;
 import static com.shanthan.businessowner.testutil.BusinessOwnerTestConstants.FIRST_NAME;
 import static com.shanthan.businessowner.testutil.BusinessOwnerTestConstants.HOUSE_OR_APT_NUM;
@@ -28,10 +27,12 @@ import static java.util.Optional.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
@@ -45,15 +46,24 @@ class BusinessOwnerServiceTest {
 
     private BusinessOwner businessOwner;
 
-    private BusinessOwnerEntity businessOwnerEntity1;
-    private BusinessOwnerEntity businessOwnerEntity2;
-    private BusinessOwnerEntity businessOwnerEntity3;
+    private BusinessOwnerEntity businessOwnerEntity;
+    private BusinessOwnerEntity updatedBusinessOwnerEntity;
+    private BusinessOwnerEntity updatedAddressBusinessOwnerEntity;
 
+    private String updatedAddressString;
+
+    private Address updatedAddress;
     private List<BusinessOwnerEntity> businessOwnerEntityList;
+
+    private String newFirstName;
+
+    private String newLastName;
 
     @BeforeEach
     void setUp() {
         openMocks(this);
+        newFirstName = "newFirstName";
+        newLastName = "newLastName";
         businessOwner = BusinessOwner.builder()
                 .firstName(FIRST_NAME)
                 .lastName(LAST_NAME)
@@ -65,13 +75,33 @@ class BusinessOwnerServiceTest {
                         .zipcode(ZIP_CODE)
                         .build())
                 .build();
+
+        //language=JSON
+        String addressString = "{\n" +
+                "  \"street\": \"123 ABC St\",\n" +
+                "  \"houseOrAptNum\": \"100\",\n" +
+                "  \"city\": \"someCity\",\n" +
+                "  \"State\": \"IL\",\n" +
+                "  \"zipcode\": \"60601\"\n" +
+                "}";
+
+        //language=JSON
+        updatedAddressString = "{\n" +
+                "  \"street\": \"123 Updated St\",\n" +
+                "  \"houseOrAptNum\": \"111\",\n" +
+                "  \"city\": \"someUpdatedCity\",\n" +
+                "  \"State\": \"IL\",\n" +
+                "  \"zipcode\": \"60661\"\n" +
+                "}";
+
+        updatedAddress = transformToAddressObject(updatedAddressString);
         //language=JSON
         String addressString1 = "{\n" +
                 "  \"street\": \"123 ABC St\",\n" +
                 "  \"houseOrAptNum\": \"100\",\n" +
                 "  \"city\": \"someCity1\",\n" +
                 "  \"State\": \"IL\",\n" +
-                "  \"zipcode\": \"600001\"\n" +
+                "  \"zipcode\": \"60001\"\n" +
                 "}";
 
         //language=JSON
@@ -80,7 +110,7 @@ class BusinessOwnerServiceTest {
                 "  \"houseOrAptNum\": \"101\",\n" +
                 "  \"city\": \"someCity2\",\n" +
                 "  \"State\": \"IL\",\n" +
-                "  \"zipcode\": \"600002\"\n" +
+                "  \"zipcode\": \"60002\"\n" +
                 "}";
 
         //language=JSON
@@ -89,15 +119,20 @@ class BusinessOwnerServiceTest {
                 "  \"houseOrAptNum\": \"102\",\n" +
                 "  \"city\": \"someCity3\",\n" +
                 "  \"State\": \"IL\",\n" +
-                "  \"zipcode\": \"600003\"\n" +
+                "  \"zipcode\": \"60003\"\n" +
                 "}";
 
 
-        businessOwnerEntity1 = new BusinessOwnerEntity(1L, "someFirstName1",
+        businessOwnerEntity = new BusinessOwnerEntity(10L, "someFirstName",
+                "someLastName", addressString);
+        updatedBusinessOwnerEntity = new BusinessOwnerEntity(10L, newFirstName, newLastName, addressString);
+        updatedAddressBusinessOwnerEntity = new BusinessOwnerEntity(10L, newFirstName, newLastName,
+                updatedAddressString);
+        BusinessOwnerEntity businessOwnerEntity1 = new BusinessOwnerEntity(1L, "someFirstName1",
                 "someLastName1", addressString1);
-        businessOwnerEntity2 = new BusinessOwnerEntity(2L, "someFirstName2",
+        BusinessOwnerEntity businessOwnerEntity2 = new BusinessOwnerEntity(2L, "someFirstName2",
                 "someLastName2", addressString2);
-        businessOwnerEntity3 = new BusinessOwnerEntity(3L, "someFirstName3",
+        BusinessOwnerEntity businessOwnerEntity3 = new BusinessOwnerEntity(3L, "someFirstName3",
                 "someLastName3", addressString3);
 
         businessOwnerEntityList = new ArrayList<>();
@@ -120,7 +155,7 @@ class BusinessOwnerServiceTest {
     @Test
     @DisplayName("Test for saving new business owner in database")
     void addBusinessOwner() {
-        BusinessOwnerEntity newBusinessOwnerEntity =  transformToBusinessOwnerEntity(businessOwner);
+        BusinessOwnerEntity newBusinessOwnerEntity = transformToBusinessOwnerEntity(businessOwner);
         subject.addBusinessOwner(businessOwner);
         verify(businessOwnerRepository).save(newBusinessOwnerEntity);
     }
@@ -137,6 +172,11 @@ class BusinessOwnerServiceTest {
     private String transformToAddressJsonString(Address address) {
         Gson gson = new Gson();
         return gson.toJson(address);
+    }
+
+    private Address transformToAddressObject(String address) {
+        Gson gson = new Gson();
+        return gson.fromJson(address, Address.class);
     }
 
     @Test
@@ -192,7 +232,8 @@ class BusinessOwnerServiceTest {
     @DisplayName("Testing for exception when retrieving owners list")
     void givenBusinessOwnerDbIsUpAndRunning_whenRetrieveBusinessOwnersMethodCalled_ThrowsException() {
         when(businessOwnerRepository.findAll()).thenThrow(new RuntimeException("someException"));
-        BusinessOwnerException exception = assertThrows(BusinessOwnerException.class, () -> subject.retrieveAllBusinessOwners());
+        BusinessOwnerException exception = assertThrows(BusinessOwnerException.class, () ->
+                subject.retrieveAllBusinessOwners());
         assertEquals("someException", exception.getExceptionMessage());
         assertEquals(INTERNAL_SERVER_ERROR, exception.getHttpStatus());
     }
@@ -201,7 +242,100 @@ class BusinessOwnerServiceTest {
     @DisplayName("Testing to see if exception is thrown when null list is returned from db")
     void givenNoBusinessOwnersPresentInDb_whenRetrieveBusinessOwnersMethodCalled_ThrowsException() {
         when(businessOwnerRepository.findAll()).thenReturn(null);
-        BusinessOwnerException exception = assertThrows(BusinessOwnerException.class, () -> subject.retrieveAllBusinessOwners());
+        BusinessOwnerException exception = assertThrows(BusinessOwnerException.class, () ->
+                subject.retrieveAllBusinessOwners());
         assertEquals(INTERNAL_SERVER_ERROR, exception.getHttpStatus());
+    }
+
+    @Test
+    @DisplayName("Testing for update name successfully for a specific business owner")
+    void givenNewNameForBusinessOwnerToUpdate_whenCalledToUpdate_thenSaveAndReturnUpdatedBusinessOwner() {
+        when(businessOwnerRepository.existsById(anyLong())).thenReturn(true);
+        when(businessOwnerRepository.getById(anyLong())).thenReturn(businessOwnerEntity);
+        when(businessOwnerRepository.save(any(BusinessOwnerEntity.class))).thenReturn(updatedBusinessOwnerEntity);
+        BusinessOwnerEntity actualResult = subject.updateBusinessOwnerName(10L, newFirstName, newLastName);
+        assertNotNull(actualResult);
+        assertEquals(newFirstName, actualResult.getFirstName());
+        assertEquals(newLastName, actualResult.getLastName());
+
+    }
+
+    @Test
+    @DisplayName("Test to see if exception thrown when called to update business owner who doesn't exit")
+    void givenNewNameForBusinessOwnerToUpdate_whenBusinessOwnerDoesNotExistInDb_thenThrowExceptionWithNotFoundStatus() {
+        when(businessOwnerRepository.existsById(anyLong())).thenReturn(false);
+        BusinessOwnerException businessOwnerException =
+                assertThrows(BusinessOwnerException.class, () ->
+                        subject.updateBusinessOwnerName(10L, newFirstName, newLastName));
+        assertEquals(NOT_FOUND, businessOwnerException.getHttpStatus());
+    }
+
+    @Test
+    @DisplayName("Testing for update address successfully for a specific business owner")
+    void givenNewAddressForBusinessOwnerToUpdate_whenCalledToUpdate_thenSaveAndReturnUpdatedBusinessOwner() {
+        when(businessOwnerRepository.existsById(anyLong())).thenReturn(true);
+        when(businessOwnerRepository.getById(anyLong())).thenReturn(businessOwnerEntity);
+        when(businessOwnerRepository.save(any(BusinessOwnerEntity.class)))
+                .thenReturn(updatedAddressBusinessOwnerEntity);
+        BusinessOwnerEntity actualResult = subject.updateBusinessOwnerAddress(10L, updatedAddress);
+        assertNotNull(actualResult);
+        assertEquals(updatedAddressString, actualResult.getAddress());
+    }
+
+    @Test
+    @DisplayName("Test to see if exception thrown when called to update business owner who doesn't exit")
+    void givenNewAddressForBusinessOwnerToUpdate_whenDoesNotExistInDb_thenThrowExceptionWithNotFoundStatus() {
+        when(businessOwnerRepository.existsById(anyLong())).thenReturn(false);
+        BusinessOwnerException businessOwnerException =
+                assertThrows(BusinessOwnerException.class, () ->
+                        subject.updateBusinessOwnerAddress(10L, updatedAddress));
+        assertEquals(NOT_FOUND, businessOwnerException.getHttpStatus());
+    }
+
+    @Test
+    @DisplayName("Test to check if BusinessOwner update is done")
+    void givenUpdatedBusinessOwner_whenCalledForUpdate_thenSaveAndReturnUpdatedBusinessOwner() {
+        updatedAddressBusinessOwnerEntity.setFirstName("fullUpdateFirstName");
+        updatedAddressBusinessOwnerEntity.setLastName("fullUpdateLastName");
+        updatedAddressBusinessOwnerEntity.setAddress(updatedAddressString);
+        when(businessOwnerRepository.existsById(anyLong())).thenReturn(true);
+        when(businessOwnerRepository.getById(anyLong())).thenReturn(businessOwnerEntity);
+        when(businessOwnerRepository.save(any(BusinessOwnerEntity.class)))
+                .thenReturn(updatedAddressBusinessOwnerEntity);
+        BusinessOwnerEntity actualResult = subject.updateBusinessOwner(BusinessOwner.builder()
+                .boNumber(10L)
+                .firstName("fullUpdateFirstName")
+                .lastName("fullUpdateLastName")
+                .address(updatedAddress)
+                .build());
+        assertNotNull(actualResult);
+        assertEquals("fullUpdateFirstName", actualResult.getFirstName());
+        assertEquals("fullUpdateLastName", actualResult.getLastName());
+    }
+
+    @Test
+    @DisplayName("Testing to see if Exception is thrown with Bad Request status")
+    void givenBusinessOwnerWithoutBoNumber_whenUpdateCalled_throwNewExceptionWithBadRequestStatus() {
+        BusinessOwnerException businessOwnerException =
+                assertThrows(BusinessOwnerException.class,() -> subject.updateBusinessOwner(BusinessOwner.builder()
+                .firstName("fullUpdateFirstName")
+                .lastName("fullUpdateLastName")
+                .address(updatedAddress)
+                .build()));
+        assertEquals(BAD_REQUEST, businessOwnerException.getHttpStatus());
+    }
+
+    @Test
+    @DisplayName("Testing to see if Exception is thrown with Not Found status")
+    void givenBusinessOwnerToUpdate_whenBusinessOwnerDoesNotExist_thenThrowNewExceptionWithNotFoundStatus() {
+        when(businessOwnerRepository.existsById(anyLong())).thenReturn(false);
+        BusinessOwnerException businessOwnerException =
+                assertThrows(BusinessOwnerException.class,() -> subject.updateBusinessOwner(BusinessOwner.builder()
+                        .boNumber(10L)
+                        .firstName("fullUpdateFirstName")
+                        .lastName("fullUpdateLastName")
+                        .address(updatedAddress)
+                        .build()));
+        assertEquals(NOT_FOUND, businessOwnerException.getHttpStatus());
     }
 }
