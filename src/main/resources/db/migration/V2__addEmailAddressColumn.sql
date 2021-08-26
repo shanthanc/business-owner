@@ -1,0 +1,1 @@
+alter table business_owner add column email_address varchar(255) not null default ''

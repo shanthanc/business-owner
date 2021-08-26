@@ -4,6 +4,10 @@ spring:
     url: jdbc:h2:mem:businessownerdb;DB_CLOSE_DELAY=-1;MODE=MYSQL
     username: testadmin
     password: testpass
+  flyway:
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    clean-on-validation-error: true
   jpa:
     hibernate:
       ddl-auto:

@@ -5,10 +5,8 @@ import lombok.Value;
 
 @Value
 @Builder
-public class UpdateResponse {
+public class AddressUpdateRequest {
 
     long boNumber;
-    String firstName;
-    String lastName;
-    String message;
+    Address address;
 }

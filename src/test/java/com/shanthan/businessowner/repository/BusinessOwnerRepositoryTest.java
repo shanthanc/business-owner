@@ -39,6 +39,7 @@ class BusinessOwnerRepositoryTest {
         assertEquals(3, businessOwnerEntityList.size());
         assertEquals(1L, businessOwnerEntityList.get(0).getBoNumber());
         assertEquals("someFirstName1", businessOwnerEntityList.get(0).getFirstName());
+        assertEquals("test1@someDomain.xyz", businessOwnerEntityList.get(0).getEmailAddress());
 
     }
 
@@ -49,5 +50,6 @@ class BusinessOwnerRepositoryTest {
         assertNotNull(businessOwnerEntity);
         assertEquals("someFirstName2", businessOwnerEntity.getFirstName());
         assertEquals("someLastName2", businessOwnerEntity.getLastName());
+        assertEquals("test2@someDomain.xyz", businessOwnerEntity.getEmailAddress());
     }
 }

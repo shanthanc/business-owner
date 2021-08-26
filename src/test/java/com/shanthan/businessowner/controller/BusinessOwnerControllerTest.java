@@ -15,11 +15,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.shanthan.businessowner.model.State.ILLINOIS;
+import static com.shanthan.businessowner.testutil.BusinessOwnerTestConstants.*;
 import static com.shanthan.businessowner.util.BusinessOwnerConstants.SUCCESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
@@ -36,6 +36,8 @@ class BusinessOwnerControllerTest {
 
     private BusinessOwner businessOwner;
 
+    private BusinessOwner updatedBusinessOwner;
+
     private List<BusinessOwner> businessOwnerList;
 
     @BeforeEach
@@ -49,7 +51,7 @@ class BusinessOwnerControllerTest {
                         .street("123 ABC St")
                         .houseOrAptNum("100")
                         .city("someCity")
-                        .state(ILLINOIS)
+                        .state(ILLINOIS.getDescription())
                         .zipcode("600001")
                         .build())
                 .build();
@@ -62,7 +64,7 @@ class BusinessOwnerControllerTest {
                         .street("223 ABC St")
                         .houseOrAptNum("101")
                         .city("someCity2")
-                        .state(ILLINOIS)
+                        .state(ILLINOIS.getDescription())
                         .zipcode("600011")
                         .build())
                 .build();
@@ -75,7 +77,7 @@ class BusinessOwnerControllerTest {
                         .street("323 ABC St")
                         .houseOrAptNum("201")
                         .city("someCity3")
-                        .state(ILLINOIS)
+                        .state(ILLINOIS.getDescription())
                         .zipcode("600013")
                         .build())
                 .build();
@@ -88,7 +90,7 @@ class BusinessOwnerControllerTest {
                         .street("423 ABC St")
                         .houseOrAptNum("401")
                         .city("someCity4")
-                        .state(ILLINOIS)
+                        .state(ILLINOIS.getDescription())
                         .zipcode("600014")
                         .build())
                 .build();
@@ -98,6 +100,18 @@ class BusinessOwnerControllerTest {
         businessOwnerList.add(businessOwner2);
         businessOwnerList.add(businessOwner3);
 
+        updatedBusinessOwner = BusinessOwner.builder()
+                .boNumber(BO_NUMBER)
+                .firstName(UPDATED_FIRST_NAME)
+                .lastName(UPDATED_LAST_NAME)
+                .address(Address.builder()
+                        .street(UPDATED_STREET)
+                        .houseOrAptNum(UPDATED_HOUSE_OR_APT_NUM)
+                        .city(UPDATED_CITY)
+                        .state(ILLINOIS.getDescription())
+                        .zipcode(UPDATED_ZIP_CODE)
+                        .build())
+                .build();
     }
 
     @Test
@@ -124,7 +138,7 @@ class BusinessOwnerControllerTest {
     }
 
     @Test
-    @DisplayName("Test for saving a new business owner in  database")
+    @DisplayName("Test for saving a new business owner in database")
     void givenValidBusinessOwnerRequest_whenCallMadeToAddBusinessOwnerToDb_thenReturnStatus201CreatedWithSuccessMesg() {
         doNothing().when(businessOwnerService).addBusinessOwner(any(BusinessOwner.class));
         ResponseEntity<SuccessResponse> actualResponse = subject.addBusinessOwner(businessOwner);
@@ -133,4 +147,59 @@ class BusinessOwnerControllerTest {
         assertEquals(CREATED, actualResponse.getStatusCode());
         assertEquals(SUCCESS, actualResponse.getBody().getMessage());
     }
+
+    @Test
+    @DisplayName("Test for updating an existing business owner in database")
+    void givenValidBusinessOwnerRequest_whenUpdateCallMade_thenReturn200StatusCodeWithUpdatedBusinessOwner() {
+        when(businessOwnerService.updateBusinessOwner(any(BusinessOwner.class))).thenReturn(updatedBusinessOwner);
+        ResponseEntity<BusinessOwner> actualResult = subject.updateBusinessOwner(updatedBusinessOwner);
+        assertNotNull(actualResult);
+        assertEquals(OK, actualResult.getStatusCode());
+        assertNotNull(actualResult.getBody());
+    }
+
+    @Test
+    void givenValidBusinessOwnerNameToUpdate_whenUpdateCallMade_thenReturn200StatusCodeWithUpdatedBusinessOwner() {
+        BusinessOwner nameUpdatedBo = BusinessOwner.builder()
+                .boNumber(BO_NUMBER)
+                .firstName(FIRST_NAME)
+                .lastName(UPDATED_LAST_NAME)
+                .address(Address.builder()
+                        .street(STREET)
+                        .houseOrAptNum(HOUSE_OR_APT_NUM)
+                        .city(CITY)
+                        .state(ILLINOIS.getDescription())
+                        .zipcode(ZIP_CODE)
+                        .build())
+                .build();
+        when(businessOwnerService.updateBusinessOwnerName(anyLong(),anyString(),anyString())).thenReturn(nameUpdatedBo);
+        ResponseEntity<BusinessOwner> actualResult =
+                subject.updateBusinessOwnerName(1L, UPDATED_FIRST_NAME, UPDATED_LAST_NAME);
+        assertNotNull(actualResult);
+        assertNotNull(actualResult.getBody());
+        assertEquals(OK, actualResult.getStatusCode());
+    }
+
+    @Test
+    void givenValidBusinessOwnerAddressToUpdate_whenUpdateCallMade_thenReturn200StatusCodeWithUpdatedBusinessOwner() {
+        BusinessOwner nameUpdatedBo = BusinessOwner.builder()
+                .boNumber(BO_NUMBER)
+                .firstName(FIRST_NAME)
+                .lastName(LAST_NAME)
+                .address(Address.builder()
+                        .street(UPDATED_STREET)
+                        .houseOrAptNum(UPDATED_HOUSE_OR_APT_NUM)
+                        .city(UPDATED_CITY)
+                        .state(ILLINOIS.getDescription())
+                        .zipcode(UPDATED_ZIP_CODE)
+                        .build())
+                .build();
+        when(businessOwnerService.updateBusinessOwnerName(anyLong(),anyString(),anyString())).thenReturn(nameUpdatedBo);
+        ResponseEntity<BusinessOwner> actualResult =
+                subject.updateBusinessOwnerName(1L, UPDATED_FIRST_NAME, UPDATED_LAST_NAME);
+        assertNotNull(actualResult);
+        assertNotNull(actualResult.getBody());
+        assertEquals(OK, actualResult.getStatusCode());
+    }
+
 }
